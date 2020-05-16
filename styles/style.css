@@ -26,6 +26,7 @@ body {
     background-color: #36403c;
     color: whitesmoke;
     text-align: center;
+    font-family: 'Poppins', sans-serif;
 }
 
 nav {
@@ -87,6 +88,14 @@ h1 {
 .project-image {
     width: 100%;
     height: calc(100% - 6.8rem);
+    /* -webkit-filter: blur(1px);
+	filter: blur(1px); */
+}
+
+a:hover img {
+    /* -webkit-filter: blur(0);
+    filter: blur(0); */
+    opacity: 0.8;
 }
 
 #contact-info {
