@@ -1,0 +1,94 @@
+body {
+    background-color: #eee;
+    /* background-image: url(https://img.pngio.com/dust-particles-png-image-free-download-searchpngcom-png-particles-715_715.png); */
+    color: black;
+    font-family: 'VT323', monospace;
+    text-align: center;
+    font-size: 1.6rem;
+}
+
+#welcome-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+}
+
+#welcome-title-fig {
+    max-width: 900px;
+}
+
+#welcome-title-img {
+    max-width: 100%;
+    height: auto;
+}
+
+#title-fig-cap {
+    text-align: center;
+    font-size: 2.5rem;
+}
+
+#img-div {
+    background-color: white;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 20px;
+    max-width: 900px;
+    border-radius: 20px;
+}
+
+#image {
+    display: block;
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 20px;
+}
+
+#img-caption {
+    font-size: 1.5rem;
+}
+
+ul {
+    max-width: 800px;
+    margin: 0 auto 50px auto;
+    text-align: left;
+    line-height: 1.6;
+}
+
+li {
+    margin: 16px 0;
+}
+
+footer {
+    font-weight: bold;
+}
+
+@media (max-width: 1024px) {
+    html {
+        font-size: 90%;
+    }
+}
+
+
+@media (max-width: 755px) {
+    html {
+        font-size: 85%;
+    }
+}
+
+@media (max-width: 600px) {
+    #title-fig-cap {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 490px) {
+    #img-caption {
+        font-size: 1.1rem;
+    }
+}

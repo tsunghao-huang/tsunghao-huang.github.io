@@ -94,7 +94,8 @@ h1 {
 }
 
 .project-tile:hover {
-    color: #c97171;
+    color: aliceblue;
+    font-weight: bold;
 }
 
 
