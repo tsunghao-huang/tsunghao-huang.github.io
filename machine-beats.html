@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Open Graph protocol -->
+  <meta property="og:title" content="Machine Drum Beats" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="./images/link-preview-img-machine-beats.png" />
+  <meta property="og:url" content="https://tsunghao-huang.github.io/machine-beats.html" />
+  <meta property="og:description" content="A blog post about using artificial neural networks to generate drum beats." />
+  <link rel="icon" href="./images/favicon-drum.ico">
+  <title>Machine Drum Beats</title>
+  <link rel="stylesheet" type="text/css" href="styles/style-machine-beats.css">
+
+</head>
+
+<body>
+  <nav id="navbar">
+    <header>Machine Beats</header>
+    <ul class="nav-list">
+      <li>
+        <a class="nav-link" href="#Intro">Intro</a>
+      </li>
+      <li>
+        <a class="nav-link" href="#Data_Preprocessing">Data Preprocessing</a>
+      </li>
+      <li>
+        <a class="nav-link" href="#Models">Models</a>
+      </li>
+      <li>
+        <a class="nav-link" href="#Result">Result</a>
+      </li>
+      <li>
+        <a class="nav-link" href="#Pattern_Bar_Chart">Pattern Bar Chart</a>
+      </li>
+      <li>
+        <a class="nav-link" href="#Conclusion">Conclusion</a>
+      </li>
+    </ul>
+  </nav>
+  <main id="main-doc">
+    <h1>
+      Neural Networks Generated Lamb of God Drum Tracks
+    </h1>
+    <p id="subtitle">
+      An experiment using different neural network structures to generate drum beats.
+    </p>
+    <figure id="cover-img">
+      <img src="https://cdn.pixabay.com/photo/2016/11/19/13/57/drum-set-1839383_1280.jpg" alt="cover photo">
+    </figure>
+    <section class="main-section" id="Intro">
+      <header>
+        Intro
+      </header>
+      <article>
+        <p>
+          I’ve had the idea of implementing some simple neural networks to generate music since last October. I did some
+          quick experiments in Jupyter notebook back then, recently I finally have time to rewrite the code and write a
+          blog post about it. <a href="https://keunwoochoi.wordpress.com/2016/02/23/lstmetallica/"
+            target="_blank">LSTMetallica</a> and
+          <a href="https://medium.com/@snikolov/neuralbeats-generative-techno-with-recurrent-neural-networks-3824d7ba7972"
+            target="_blank">NeuralBeats</a>
+          have done similar works already. Both authors used LSTM to
+          train on several drum tracks of their choice. For me, I choose Lamb of God.
+        </p>
+        <p>
+          Note: If you are only interested in listening to the results, you can go directly to the result section. And
+          the
+          code can be found <a href="https://github.com/tsunghao-huang/machine_beats" target="_blank">here</a>.
+        </p>
+        <h3>Why Drum? Lamb of God?</h3>
+        <p>
+          Generating drum beats as my target is rather straight forward for me since I had been playing drums in a band
+          with my friends from high school until I decided to study abroad. Compared to Lamb of God, the music we used
+          to
+          play was much softer, but I admire Chris Adler’s <a href="https://youtu.be/qQRww_NVJoQ?t=34"
+            target="_blank">bass drum
+            techniques</a>. (Take a look of the “simple” beats he demonstrated in that video.) Additionally, there are
+          more interesting drum patterns in the songs.
+        </p>
+        <p>
+          The other reason to choose LoG probably just because there are more resources of MIDI files compared to the
+          other drummers I like such as Steve Jordan and Aaron Spears.
+        </p>
+      </article>
+
+    </section>
+
+    <section class="main-section" id="Data_Preprocessing">
+      <header>
+        Data Preprocessing
+      </header>
+      <article>
+        <p>
+          First, let’s take a look at how human plays drums and why neural networks might be promising tools for
+          generating drum beats. Playing instruments is an art, which might be affected by several reasons: emotions,
+          techniques, the skills of the players, etc. However, in order to make the music coherent, one of the most
+          important factors probably is the past patterns that have been played.
+        </p>
+        <p>
+          Likewise, we can think of playing drums as a process of continuously predicting the rhythms, patterns we are
+          going to play based on the previous ones which have been played. (Of course, if you were playing in a band,
+          there is more information to take into consideration but that’s another story and we are dealing with a single
+          drum track here.)
+        </p>
+        <P>
+          Instead of training a model directly on raw audios, I decided to use MIDI files as the data source since the
+          format is more understandable for human, providing me more intuition when tuning the model. After some
+          keywords
+          search on Google, I was able to find some LoG MIDI tracks. The data preprocessing took almost 70% of my time
+          on
+          this experiment so I would work through the process in more detail.
+        </P>
+        <p>
+          To work with MIDI format in python, I choose to use <a href="https://mido.readthedocs.io/en/latest/#"
+            target="_blank">Mido</a>
+          to parse MIDI files. Mido parses MIDI file as an
+          object, which consists of several tracks, in general, each track contains all the notes of one instrument.
+        </p>
+        <p>
+          Each track has several messages, which control how and when to play a note. As shown below, the message type
+          ‘note_on’ and ‘note_off’ control when the instrument (‘channel’) should play. Channel 9 indicates <a
+            href="https://en.wikipedia.org/wiki/General_MIDI#Percussion" target="_blank">percussion instruments</a> and
+          ‘note’ represent
+          the exact instrument that should be played. There are other types of messages,
+          but for this experiment, ‘note_on’ is the most important one. ‘note_off’ is usually not necessary for
+          percussion
+          instruments because they have no length although it’s recommended to use ‘note_off’ whenever a note was on.
+        </p>
+        <code>
+                {'type': 'note_on', 'time': 0, 'note': 49, 'velocity': 95, 'channel': 9}
+                <br>
+                {'type': 'note_off', 'time': 240, 'note': 49, 'velocity': 95, 'channel': 9}
+            </code>
+
+        <p>
+          Having this knowledge, the first thing to do is quantization, which means constraining a signal into a
+          discrete
+          set. In this case, I want to make every note to be played exactly on a 32-note. I am aware that this might
+          distort the triplet and sextuplet notes, but most of the notes can be quantized into one 32-note. The image
+          below gives a data frame view of some notes after one-hot encoding, where 1 means play and 0 means don’t. The
+          numbers in the columns represent the instrument. e.g. 36: bass drum. Thus, what we want to do is to predict
+          the
+          in the next 32-note, what instruments should be played based on the information we have previously.
+        </p>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*TnQEuav3wex76yezlmrrww.png" alt="notes in table">
+          <figcaption>Notes in Tabular</figcaption>
+        </figure>
+
+        <p>
+          To reduce complexity, I cut off the columns to retain only the most frequent n (6 or 8) instruments and you
+          might have already noticed, I ignored the velocity too.
+        </p>
+
+        <p>
+          There is another encoding method, you can encode every combination of instruments and create a new categorical
+          variable. For example, if we choose to encode 4 instruments, then in total we would have 2⁴ = 16 combinations.
+          This is exactly what <a
+            href="https://medium.com/@snikolov/neuralbeats-generative-techno-with-recurrent-neural-networks-3824d7ba7972"
+            target="_blank">#NeuralBeats</a>
+          did. However, I found that in my case, the encoding scheme shown in the figure
+          works better.
+        </p>
+      </article>
+
+    </section>
+
+    <section class="main-section" id="Models">
+      <header>
+        Models
+      </header>
+      <article>
+        <p>
+          Long short-term memory (LSTM) is probably most people would come up with when using the neural network to deal
+          with sequential data. LSTM is said to be able to remember long term dependencies. I am not going into details
+          here as there are already plenty of <a href="http://colah.github.io/posts/2015-08-Understanding-LSTMs/"
+            target="_blank">resources</a> explaining LSTM.
+        </p>
+        <p>
+          On the other hand, convolutional neural networks (CNN) are famous for image classification, recognition, etc,
+          but recent research has demonstrated that they also work pretty well on sequential data. One example is <a
+            href="https://deepmind.com/blog/wavenet-generative-model-raw-audio/" target="_blank">WaveNet</a>,
+          a state of the art generative model for Text-to-Speech. The authors also showed that it can be used for music
+          generation.
+        </p>
+        <p>
+          I built and trained both models with Keras. As in most of the machine learning project, I used early stopping
+          to
+          prevent the models from overfitting, especially we don’t really want the model to generate exactly the same
+          beats they have seen. In addition to model structures, I also experimented with different lengths, 32 notes,
+          and
+          128 notes for both models. The image below shows the training loss and validation loss of both models with 128
+          inputs length. As you can see, CNN is able to capture the patterns quite fast but starts to overfit on the
+          training set, while LSTM slowly improve until the end of the last epochs and it is still outperformed by CNN.
+          Although the model was able to improve further after I increased the epochs, I found that LSTM works better
+          with
+          shorter input length in my experiment. I could have continued to try different LSTM settings such as stateful
+          LSTM or even combining CNN and LSTM. However, tuning the models to get the best performance is simply not the
+          target of this experiment.
+        </p>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*KnWw9V8CbdZcw5tBNccPmA.png" alt="tensorboard">
+          <figcaption>TensorBoard</figcaption>
+        </figure>
+      </article>
+
+    </section>
+    <section class="main-section" id="Result">
+      <header>
+        Result
+      </header>
+
+      <article>
+        <h3>Expected</h3>
+        <p>
+          If we really think about how we formulate the problem, it’s actually not that intelligent. Most of the drum
+          beats in the music are repetitive in most bars. The most common pattern is to add drum fills at the end of
+          every
+          4th bar. As you can see from the drum notes below, there are usually different beats at the end of each line.
+          Let’s say if we fit 32 32-note to a model and ask it to predict the next note. Then it only has to predict
+          exactly the 1st 32-note in the input sequence. The difficult parts might be to detect this 4-bar cycle and
+          predict the corresponding drum fills.
+        </p>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*aFGrELZk3GTPklEqILFEKQ.png" alt="tensorboard">
+          <figcaption>Source: https://alanlinmusic.blogspot.com/</figcaption>
+        </figure>
+        <p>
+          In addition to looking into the evaluation metrics, I decided to check the quality of the model by directly
+          listening to the beats it generated in two scenarios.
+        </p>
+
+        <P>
+          First, because of the input-output setting, we need to predict multi-step ahead to create a pattern,
+          otherwise,
+          the model is only going to predict one step ahead. (one 32-note) There are several ways to do this, one of
+          them
+          is to predict recursively, which means we take the predicted result to the next input and recursively forecast
+          until we reach the ideal length. In a recursive setting, I would expect the model can at least duplicate the
+          given notes in the same length and continue to do so until the end.
+        </P>
+        <P>
+          The second setting is to concatenate all the one step ahead predictions to get the drum beats with target
+          length. The expectation should be higher since, at every time step, the model get the ground truth of what has
+          been played by the drummer. A good model should not only be able to duplicate the given beats but also detect
+          the drum fills and cycles shown by the real song.
+        </P>
+
+        <h3>Music Time!</h3>
+        <p>
+          Finally, let’s first hear how the models perform in these two scenarios.
+        </p>
+        <h4>LSTM: Recursive</h4>
+        <p>
+          The beats are all generated by models trained on 128 inputs length. I concatenate the real inputs at the
+          beginning so we can hear what the model actually get. You can find that the model did a quite poor job, it can
+          not even detect the 1 bar pattern for track 1 and 2. The 3rd track is generated by the LSTM trained on 32
+          inputs
+          length. Fortunately, it at least captures the 1 barpattern and repetitively generated the same until the end.
+        </p>
+        <iframe width="100%" height="166" scrolling="no" frameborder="no"
+          src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/587056386&amp;color=ff5500"></iframe>
+        <h4>LSTM: Direct</h4>
+        <p>
+          As we expect, since the model gets the ground truth every step, the model does not predict repetitively.
+          However, the generated beats are still not very pleasant to hear, especially the wired bass drum in track 1. I
+          guess it tries to predict the sextuplet but is forced to be quantized in 32-note. In general, I believe LSTM
+          could be improved by increasing the epochs and reducing the input lengths with reasonable batch size. As
+          mentioned earlier, one can also try different structures. In this post, I just want to demonstrate what a poor
+          model might sound like compared to a better one. If you are interested in better results, let’s move on.
+        </p>
+        <iframe width="100%" height="166" scrolling="no" frameborder="no"
+          src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/587055213&amp;color=ff5500"></iframe>
+        <h4>CNN: Recursive</h4>
+        <iframe width="100%" height="166" scrolling="no" frameborder="no"
+          src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/587083338&amp;color=ff5500"></iframe>
+        <p>
+          Cool! It seems like CNN is able to not only detect 1 bar pattern but also “improvise” a bit. Note that the
+          first
+          4 bars are the inputs.
+        </p>
+        <h4>CNN: Direct</h4>
+        <p>
+          The generated tracks are getting more realistic.
+        </p>
+        <iframe width="100%" height="166" scrolling="no" frameborder="no"
+          src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/587084847&amp;color=ff5500"></iframe>
+      </article>
+
+    </section>
+
+    <section class="main-section" id="Pattern_Bar_Chart">
+      <header>
+        Pattern Bar Chart
+      </header>
+      <article>
+        <p>
+          Except for directly listening to the generated tracks, I was thinking about a way to visually inspect the
+          model
+          quality. For cardinal time series analysis, there are autocorrelation plot, time plot, etc. After training a
+          model, one can use these tools to check the residuals to see if your model still left out some useful
+          information.
+        </p>
+        <p>
+          However, we are dealing with categorical time series data, the categorical variable is lack of natural order.
+          Eventually, I found this paper [1] which presents a couple of visualization tools, especially for categorical
+          time
+          series data. One of them is the pattern histogram and I think it would be a nice visualization to compare the
+          generated patterns and the true patterns.
+        </p>
+        <P>
+          The basic idea is to calculate the frequency of an event after it occurs until the desired time. For example,
+          if
+          we want to get the bass drum patterns of length 128, we get all the occurrences of the bass drum and their
+          following 128 notes to see how frequently does bass drum play in each of the 128 steps. You can see the
+          figures
+          below. Bass drum apparently appears to be the most frequent. (It’s Chris Adler…) In general, there are spikes
+          in
+          every 8th, 16th, 32nd note, etc.
+        </P>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*kGz9azspAuluEJD6aodTRA.png" alt="tensorboard">
+          <figcaption>Bass Drum Pattern</figcaption>
+        </figure>
+        <figure>
+          <img src="https://miro.medium.com/proxy/1*pix9AUaDC4bu8wECkVxrJA.png" alt="tensorboard">
+          <figcaption>Snare Drum Pattern</figcaption>
+        </figure>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*3AF6HJDjYyL-i1L2A8USHA.png" alt="tensorboard">
+          <figcaption>Open Hi-hat Pattern</figcaption>
+        </figure>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*kAgp-vMC3L54SO_jykyBRQ.png" alt="tensorboard">
+          <figcaption>Crash Pattern</figcaption>
+        </figure>
+
+        <p>
+          If we compare the predicted pattern bar chart with the real one directly, we can see that the model is able to
+          capture the overall bass drum patterns, for the snare drum, the model detects the spikes for every 16th note
+          but
+          seems not able to find the patterns in between. However, it is very hard to find any difference for bass drums
+          by just visually comparing them. A better solution is to subtract the predicted value from the truth.
+        </p>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*eHqK68lgImIj6ipIdANjvA.png" alt="tensorboard">
+          <figcaption>Patterns Comparison</figcaption>
+        </figure>
+        <figure>
+          <img src="https://miro.medium.com/max/1400/1*JAgftBl4Sv0UAfEASFKfBA.png" alt="tensorboard">
+          <figcaption>Pattern “Residuals” Comparison</figcaption>
+        </figure>
+
+      </article>
+    </section>
+    <section class="main-section" id="Conclusion">
+      <header>
+        Conclusion
+      </header>
+      <article>
+        <p>
+          Generating music with algorithms is not something new. And strictly speaking, the trained models do not really
+          “generate” drum tracks. The setting of the model ’s loss function (Binary cross entropy) is simply to ask the
+          model to play exactly like Chris Adler, a typical setting for classification problems. The closest one in this
+          small experiment probably is to let the model predict recursively but as we can see that the models tend to
+          repeat the same patterns after a certain length without capturing the long term structures. We cannot blame
+          the
+          models, this is just the safest guess based on what the models have been trained on. Some <a
+            href="https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn" target="_blank">research</a> has
+          introduced additional structures such as Attention RNN and Lookback RNN to tackle this problem. For CNN, the
+          most direct way for the model to detect long term structure probably is to increase the length of inputs to
+          include most of the patterns.
+        </p>
+        <p>
+          However, to better realize the idea of applying neural networks to generate music, there are some advanced
+          neural network structures such as <a href="https://skymind.ai/wiki/generative-adversarial-network-gan"
+            target="_blank">Generative Adversarial Networks</a> or <a
+            href="http://kvfrans.com/variational-autoencoders-explained/" target="_blank">Variational Autoencoders</a>.
+          They have been
+          applied to image and <a href="https://arxiv.org/abs/1703.10847" target="_blank">music</a> [2] generation.
+          Implementing a
+          generative network to generate drum beats would be a good
+          idea for writing another blog post.
+        </p>
+
+      </article>
+
+      <p>
+        <ol>
+          <li>
+            Weiß, C.H., 2008. Visual analysis of categorical time series. Statistical Methodology, 5(1), pp.56–71.
+          </li>
+          <li>
+            Yang, L.C., Chou, S.Y. and Yang, Y.H., 2017. MidiNet: A convolutional generative adversarial network for
+            symbolic-domain music generation. arXiv preprint arXiv:1703.10847.
+          </li>
+        </ol>
+
+      </p>
+    </section>
+  </main>
+</body>
+
+</html>
