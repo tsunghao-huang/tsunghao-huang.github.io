@@ -1,3 +1,7 @@
+:root {
+    --theme-color-1: #36403c;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -23,14 +27,14 @@ h2 {
 }
 
 body {
-    background-color: #36403c;
+    background-color: var(--theme-color-1);
     color: whitesmoke;
     text-align: center;
     font-family: 'Poppins', sans-serif;
 }
 
 nav {
-    background-color: #36403c;
+    background-color: var(--theme-color-1);
     display: flex;
     justify-content: flex-end;
     position: fixed;
@@ -46,7 +50,7 @@ nav {
 .nav-list a {
     display: block;
     font-size: 2rem;
-    padding: 0.8rem;
+    padding: 0.5rem 1rem;
 }
 
 #welcome-section {
@@ -83,7 +87,7 @@ h1 {
 }
 
 .project.project-tile {
-    background-color: #36403c;
+    background-color: var(--theme-color-1);
     font-size: 2rem;
     border-radius: 15px;
     transition: transform 0.2s;
