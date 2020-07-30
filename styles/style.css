@@ -87,7 +87,7 @@ h1 {
     background-color: var(--theme-color-1);
     font-size: 2vmax;
     border-radius: 10px;
-    transition: transform 0.5s;
+    transition: transform 0.3s;
     width: 28vmax;
     height: 28vmax;
     margin: 1.8rem 1.2rem;
@@ -103,7 +103,7 @@ h1 {
 }
 
 .project-tile:hover {
-    /* transform: scale(1.1); */
+    transform: translateX(-1px) translateY(-1px);
     box-shadow: 5px 10px 10px rgb(46, 46, 46);
 }
 
@@ -126,7 +126,8 @@ h1 {
 .demo-btn, .code-btn{
     background-color: whitesmoke;
     color: var(--theme-color-1);
-    width: 35%;
+    width: 36%;
+    padding: 2px;
     /* max-width: 150px;
     min-width: 100px; */
     border-radius: 10px;
